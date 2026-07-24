@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block titulo %}{{ proyecto.nombre }}{% endblock %}
+
+{% block nav %}
+<span class="nav-proyecto">{{ proyecto.nombre }}</span>
+{% if sprint %}
+  <span class="nav-sprint" title="{{ sprint.objetivo }}">{{ sprint.nombre }} · {{ sprint.objetivo }}</span>
+{% else %}
+  <span class="nav-sprint sin-sprint">Sin sprint activo</span>
+{% endif %}
+<a class="nav-enlace" href="/dashboard/{{ proyecto._id }}">📊 Dashboard</a>
+<a class="nav-enlace" href="/daily/{{ proyecto._id }}">📝 Daily</a>
+<a class="nav-enlace solo-moderador solo-miembro" href="#"
+   onclick="location = '/historial/{{ proyecto._id }}?usuarioId=' + selUsuario.value; return false">🕘 Historial</a>
+<button class="nav-boton solo-miembro" onclick="abrirNuevaTarjeta()">＋ Tarjeta</button>
+<button class="nav-boton solo-moderador solo-miembro" onclick="abrirNuevoSprint()">Nuevo sprint</button>
+{% endblock %}
+
+{% block contenido %}
+<section class="tablero-envoltura">
+  {# visible solo cuando el usuario del selector NO es miembro (D-18) #}
+  <div class="banner-observador">👁 Estás observando <strong>{{ proyecto.nombre }}</strong>:
+    no formas parte del equipo, así que puedes mirar el tablero pero no modificarlo.</div>
+
+  {% if breadcrumb %}
+  {# Drill-down: la ruta sale de `ancestros` (materialized path, D-03) #}
+  <nav class="breadcrumb">
+    <a href="/tablero/{{ proyecto._id }}">Tablero</a>
+    {% for paso in breadcrumb %}
+      <span class="sep">›</span>
+      {% if loop.last %}<strong>{{ paso.titulo }}</strong>
+      {% else %}<a href="/tablero/{{ proyecto._id }}?nodo={{ paso.id }}">{{ paso.titulo }}</a>{% endif %}
+    {% endfor %}
+    {% if nodo and progreso.get(nodo._id) %}
+      {% set p = progreso[nodo._id] %}
+      <span class="breadcrumb-progreso">{{ p.hechos }}/{{ p.total }} pts · {{ p.pct }} %</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  <div class="tablero" style="--columnas: {{ proyecto.columnas | length }}">
+    <div class="esquina"></div>
+    {% for c in proyecto.columnas %}
+    <div class="col-cabecera">
+      <span>{{ c.nombre }}</span>
+      {# la pastilla existe siempre: para el moderador es también el editor del límite #}
+      <span id="wip-{{ c.clave }}"
+            class="wip-pill {% if c.limiteWip and c.wip >= c.limiteWip %}lleno{% endif %}
+                   {% if not c.limiteWip %}sin-limite solo-moderador{% endif %}"
+            data-clave="{{ c.clave }}" data-limite="{{ c.limiteWip or '' }}"
+            title="Límite de tarjetas en curso a la vez"
+            onclick="editarLimiteWip(this)">
+        {%- if c.limiteWip %}{{ c.wip }}/{{ c.limiteWip }}{% else %}∞{% endif -%}
+      </span>
+    </div>
+    {% endfor %}
+
+    {% for f in filas %}
+    <div class="fila-nombre {% if f.id == 'sin-asignar' %}fila-sin-asignar{% endif %}"
+         title="{{ f.nombre }}">
+      <span class="avatar">{{ f.nombre[0] }}</span><span class="fila-nombre-texto">{{ f.nombre }}</span>
+    </div>
+    {% for c in proyecto.columnas %}
+    <div class="celda" data-fila="{{ f.id }}" data-columna="{{ c.clave }}"
+         data-nombre="{{ f.nombre.split(' ')[0] }} · {{ c.nombre }}">
+      {% for t in f.celdas[c.clave] %}
+      <article class="tarjeta t-{{ t.tipo }} {% if t.bloqueado.estado %}bloqueada{% endif %}"
+               data-id="{{ t._id }}">
+        <div class="tarjeta-cuerpo">
+          <p class="titulo">{{ t.titulo }}</p>
+          <div class="meta">
+            <span class="tipo">{{ t.tipo }}</span>
+            {% if t.puntos %}<span class="puntos">{{ t.puntos }}</span>{% endif %}
+            {% if t.bloqueado.estado %}<span class="candado" title="{{ t.bloqueado.motivo }}">⛔</span>{% endif %}
+            {% if t.etiquetas %}{% for e in t.etiquetas[:2] %}<span class="etiqueta">{{ e }}</span>{% endfor %}{% endif %}
+            <button class="no-drag btn-detalle" title="Detalle">⋯</button>
+          </div>
+          {% if t.tipo == "nodo" %}
+            {% set p = progreso.get(t._id) %}
+            <a class="no-drag nodo-link" href="/tablero/{{ proyecto._id }}?nodo={{ t._id }}">
+              {% if p %}
+              <span class="barra"><span class="barra-relleno" style="width: {{ p.pct }}%"></span></span>
+              <span class="nodo-info">{{ p.hechos }}/{{ p.total }} pts · {{ p.n }} tarjetas ›</span>
+              {% else %}
+              <span class="nodo-info">sin hijos aún ›</span>
+              {% endif %}
+            </a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+
+  {# Leyenda: el color de la franja izquierda de cada tarjeta indica su tipo #}
+  <footer class="leyenda">
+    <span class="leyenda-titulo">El color indica el tipo de trabajo:</span>
+    <span><i class="punto-tipo" style="background: var(--c-historia)"></i> historia — funcionalidad con valor para el usuario</span>
+    <span><i class="punto-tipo" style="background: var(--c-bug)"></i> bug — algo roto por reparar</span>
+    <span><i class="punto-tipo" style="background: var(--c-tarea)"></i> tarea — trabajo de soporte</span>
+    <span><i class="punto-tipo" style="background: var(--c-spike)"></i> spike — investigación con tiempo límite</span>
+    <span><i class="punto-tipo" style="background: var(--c-nodo)"></i> nodo — agrupa subtareas (no puntúa)</span>
+  </footer>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{# vendorizado (sin CDN): la demo no depende de internet en la sala #}
+<script src="/static/vendor/sortable.min.js"></script>
+<script>
+  const PROYECTO_ID = "{{ proyecto._id }}";
+  const SPRINT_ID = "{{ sprint._id if sprint else '' }}" || null;
+  const SPRINT_NOMBRE = "{{ sprint.nombre if sprint else '' }}";
+  const MIEMBROS = {{ miembros | tojson }};
+</script>
+<script src="/static/tablero.js"></script>
+{% endblock %}

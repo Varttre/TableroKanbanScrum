@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Proyectos{% endblock %}
+
+{% block contenido %}
+<section class="portada">
+  <div class="portada-cabecera">
+    <h1>Proyectos</h1>
+    <div class="portada-acciones">
+      <button class="btn solo-moderador" onclick="abrirNuevoProyecto()">＋ Nuevo proyecto</button>
+      <button class="btn btn-suave solo-moderador" onclick="abrirNuevoUsuario()">＋ Nuevo usuario</button>
+    </div>
+  </div>
+  <div class="grid-proyectos">
+    {% for p in proyectos %}
+    <a class="tarjeta-proyecto" href="/tablero/{{ p._id }}">
+      <h2>{{ p.nombre }}</h2>
+      <p class="cliente">{{ p.cliente }}</p>
+      {% if p.sprintActivo %}
+        <p class="sprint-info"><span class="punto activo"></span>{{ p.sprintActivo }}
+          — {{ p.sprintObjetivo }}</p>
+      {% else %}
+        <p class="sprint-info"><span class="punto"></span>Sin sprint activo</p>
+      {% endif %}
+      <p class="miembros">
+        {% for m in p.miembros %}<span class="chip">{{ m.nombre.split(" ")[0] }}</span>{% endfor %}
+      </p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const USUARIOS = {{ usuarios_js | tojson }};
+
+function abrirNuevoProyecto() {
+  const casillas = USUARIOS.map(u => `
+    <label class="etiqueta-inline">
+      <input type="checkbox" name="miembros" value="${esc(u.id)}"> ${esc(u.nombre)}
+      ${u.rol === "moderador" ? " ★" : ""}
+    </label>`).join("");
+  abrirModal(`
+    <header class="modal-cabecera"><h2>Nuevo proyecto</h2>
+      <button class="btn-mini" onclick="cerrarModal()">✕</button></header>
+    <div class="modal-cuerpo">
+      <form class="form-daily" onsubmit="return crearProyecto(event)">
+        <label>Nombre del proyecto<input name="nombre" required maxlength="80"></label>
+        <label>Cliente<input name="cliente" required maxlength="80"></label>
+        <fieldset class="grupo-casillas"><legend>Equipo (las filas del tablero)</legend>
+          ${casillas}
+        </fieldset>
+        <button class="btn">Crear proyecto</button>
+      </form>
+    </div>`);
+}
+
+async function crearProyecto(evento) {
+  evento.preventDefault();
+  const f = evento.target;
+  const miembros = [...f.querySelectorAll("input[name=miembros]:checked")].map(c => c.value);
+  const creado = await llamarApi("/proyectos", "POST", {
+    nombre: f.nombre.value, cliente: f.cliente.value, miembros,
+  });
+  if (creado) location = `/tablero/${creado._id}`;
+  return false;
+}
+
+function abrirNuevoUsuario() {
+  abrirModal(`
+    <header class="modal-cabecera"><h2>Nuevo usuario</h2>
+      <button class="btn-mini" onclick="cerrarModal()">✕</button></header>
+    <div class="modal-cuerpo">
+      <form class="form-daily" onsubmit="return crearUsuario(event)">
+        <label>Nombre completo<input name="nombre" required maxlength="80"></label>
+        <label>Email<input type="email" name="email" required placeholder="nombre@rumbo.pe"></label>
+        <label>Rol<select name="rol">
+          <option value="desarrollador">desarrollador — opera el tablero</option>
+          <option value="moderador">moderador ★ — además administra</option>
+        </select></label>
+        <button class="btn">Crear usuario</button>
+      </form>
+    </div>`);
+}
+
+async function crearUsuario(evento) {
+  evento.preventDefault();
+  const f = evento.target;
+  const creado = await llamarApi("/usuarios", "POST", {
+    nombre: f.nombre.value, email: f.email.value, rol: f.rol.value,
+  });
+  if (creado) { toast(`Usuario «${f.nombre.value}» creado`); setTimeout(() => location.reload(), 900); }
+  return false;
+}
+</script>
+{% endblock %}

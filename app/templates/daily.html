@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block titulo %}Daily · {{ proyecto.nombre }}{% endblock %}
+
+{% block nav %}
+<span class="nav-proyecto">{{ proyecto.nombre }}</span>
+<a class="nav-enlace" href="/tablero/{{ proyecto._id }}">← Tablero</a>
+<a class="nav-enlace" href="/dashboard/{{ proyecto._id }}">📊 Dashboard</a>
+{% endblock %}
+
+{% block contenido %}
+<section class="dashboard">
+  <header class="dashboard-cabecera">
+    <h1>Daily</h1>
+    {% if sprint %}<p class="subtitulo">{{ sprint.nombre }} — {{ sprint.objetivo }}</p>
+    {% else %}<p class="subtitulo">No hay sprint activo: la daily se registra por sprint.</p>{% endif %}
+  </header>
+
+  {% if sprint %}
+  <div class="paneles">
+    <div class="panel">
+      <h2>Mi participación de hoy <span class="nota">habla quien tiene el turno</span></h2>
+      <p class="vacio solo-observador-nota no-mostrar">👁 Estás observando: solo el equipo
+        del proyecto registra su daily.</p>
+      <form class="form-daily" id="formDaily" onsubmit="return registrar(event)">
+        <label>¿Qué hice ayer?<textarea name="hice" required rows="2"></textarea></label>
+        <label>¿Qué haré hoy?<textarea name="hare" required rows="2"></textarea></label>
+        <label>¿Algo me bloquea? <span class="nota">(vacío = nada)</span>
+          <input name="bloqueo" placeholder="p. ej. espero credenciales del cliente"></label>
+        <button class="btn">Registrar como el usuario de la cabecera</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>La daily de hoy
+        <span class="nota">{{ hoy.participaciones | length if hoy else 0 }} participaciones</span></h2>
+      {% if hoy and hoy.participaciones %}
+        <ul class="participaciones">
+          {% for p in hoy.participaciones %}
+          <li>
+            <div class="participacion-quien"><span class="avatar">{{ p.nombre[0] }}</span>
+              <strong>{{ p.nombre }}</strong></div>
+            <p><span class="etiqueta-daily">hice</span> {{ p.hice }}</p>
+            <p><span class="etiqueta-daily">haré</span> {{ p.hare }}</p>
+            {% if p.bloqueo %}<p class="bloqueo">⛔ {{ p.bloqueo }}</p>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="vacio">Nadie ha participado todavía. La ceremonia dura 15 minutos: empieza tú.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if historial %}
+  <div class="panel">
+    <h2>Dailies anteriores del sprint</h2>
+    {% for d in historial %}
+    <details class="daily-pasada">
+      <summary>{{ d.fecha.strftime("%Y-%m-%d") }} — {{ d.participaciones | length }} participaciones
+        {%- set bloqueos = d.participaciones | selectattr("bloqueo") | list %}
+        {% if bloqueos %} · ⛔ {{ bloqueos | length }}{% endif %}</summary>
+      <ul class="participaciones">
+        {% for p in d.participaciones %}
+        <li>
+          <div class="participacion-quien"><span class="avatar">{{ p.nombre[0] }}</span>
+            <strong>{{ p.nombre }}</strong></div>
+          <p><span class="etiqueta-daily">hice</span> {{ p.hice }}</p>
+          <p><span class="etiqueta-daily">haré</span> {{ p.hare }}</p>
+          {% if p.bloqueo %}<p class="bloqueo">⛔ {{ p.bloqueo }}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if sprint %}
+<script>
+const SPRINT_ID = "{{ sprint._id }}";
+const MIEMBROS_IDS = {{ miembros_ids | tojson }};
+let DAILY_ID = "{{ hoy._id if hoy else '' }}" || null;  // '' = hoy aún sin daily
+
+// D-18: quien no es del equipo observa la daily, no participa
+function aplicarMembresiaDaily() {
+  const miembro = MIEMBROS_IDS.includes(selUsuario.value);
+  document.getElementById("formDaily").classList.toggle("no-mostrar", !miembro);
+  document.querySelector(".solo-observador-nota").classList.toggle("no-mostrar", miembro);
+}
+selUsuario.addEventListener("change", aplicarMembresiaDaily);
+aplicarMembresiaDaily();
+
+/* Registrar = (crear la daily de hoy si no existe) + upsert de mi participación.
+ * El backend garantiza una daily por (sprint, día) con índice único (C11). */
+async function registrar(evento) {
+  evento.preventDefault();
+  const f = evento.target;
+
+  if (!DAILY_ID) {
+    const r = await fetch("/dailies", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sprintId: SPRINT_ID, fecha: new Date().toISOString(),
+                             participaciones: [], usuarioId: selUsuario.value }),
+    });
+    if (!r.ok) {  // 409 = otro la creó hace un instante: recargar la trae
+      toast("La daily de hoy ya existía: recargando…", true);
+      setTimeout(() => location.reload(), 1200);
+      return false;
+    }
+    DAILY_ID = (await r.json())._id;
+  }
+
+  const r = await fetch(`/dailies/${DAILY_ID}/participacion`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ participacion: {
+      usuarioId: selUsuario.value, hice: f.hice.value, hare: f.hare.value,
+      bloqueo: f.bloqueo.value || null } }),
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    toast(e.detail || "No se pudo registrar", true);
+    return false;
+  }
+  location.reload();
+  return false;
+}
+</script>
+{% endif %}
+{% endblock %}

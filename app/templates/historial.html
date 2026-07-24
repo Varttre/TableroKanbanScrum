@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Historial · {{ proyecto.nombre }}{% endblock %}
+
+{% block nav %}
+<span class="nav-proyecto">{{ proyecto.nombre }}</span>
+<a class="nav-enlace" href="/tablero/{{ proyecto._id }}">← Tablero</a>
+{% endblock %}
+
+{% block contenido %}
+<section class="dashboard">
+  <header class="dashboard-cabecera">
+    <h1>🕘 Historial del tablero</h1>
+    <p class="subtitulo">Solo lectura: cada acción quedó registrada al ocurrir y no
+      puede editarse ni borrarse. {{ total }} registros con los filtros actuales.</p>
+  </header>
+
+  {# Filtros combinables: sprint / persona (quién hizo la acción) / tarjeta #}
+  <form class="panel filtros" method="get">
+    <input type="hidden" name="usuarioId" value="{{ sel.usuarioId }}">
+    <label>Sprint
+      <select name="sprintId">
+        <option value="">— todos —</option>
+        {% for s in sprints_filtro %}
+        <option value="{{ s._id }}" {% if sel.sprintId == s._id %}selected{% endif %}>
+          {{ s.nombre }} ({{ s.estado }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Persona (quién lo hizo)
+      <select name="actorId">
+        <option value="">— todas —</option>
+        {% for u in usuarios %}
+        <option value="{{ u._id }}" {% if sel.actorId == u._id %}selected{% endif %}>{{ u.nombre }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Tarjeta
+      <select name="tarjetaId">
+        <option value="">— todas —</option>
+        {% for t in tarjetas_filtro %}
+        <option value="{{ t.id }}" {% if sel.tarjetaId == t.id %}selected{% endif %}>{{ t.titulo }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn">Filtrar</button>
+    <a class="btn btn-suave" href="/historial/{{ proyecto._id }}?usuarioId={{ sel.usuarioId }}">Limpiar</a>
+  </form>
+
+  {% if not secciones %}
+  <div class="panel"><p class="vacio">No hay actividad con esos filtros.</p></div>
+  {% endif %}
+
+  {% for seccion in secciones %}
+  <div class="panel seccion-historial">
+    <h2>{{ seccion.sprint }}</h2>
+    {% for dia in seccion.dias %}
+    <h3 class="dia-historial">{{ dia.fecha }}</h3>
+    <ul class="lineas-historial">
+      {% for e in dia.entradas %}
+      <li class="linea-historial ev-{{ e.tipo }}">
+        <span class="hora">{{ e.hora }}</span>
+        <span class="que"><strong>{{ e.tarjeta }}</strong> — {{ e.detalle }}</span>
+        <span class="quien">{{ e.actor }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

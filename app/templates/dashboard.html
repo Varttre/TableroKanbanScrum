@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard · {{ proyecto.nombre }}{% endblock %}
+
+{% block nav %}
+<span class="nav-proyecto">{{ proyecto.nombre }}</span>
+<a class="nav-enlace" href="/tablero/{{ proyecto._id }}">← Tablero</a>
+<a class="nav-enlace" href="/daily/{{ proyecto._id }}">📝 Daily</a>
+{% endblock %}
+
+{% block contenido %}
+<section class="dashboard">
+  <header class="dashboard-cabecera">
+    <h1>Dashboard</h1>
+    {% if sprint %}<p class="subtitulo">{{ sprint.nombre }} — {{ sprint.objetivo }}</p>
+    {% else %}<p class="subtitulo">Sin sprint activo: solo métricas históricas.</p>{% endif %}
+  </header>
+
+  {# --- KPIs del sprint (pipelines 2 y 6) --------------------------------- #}
+  <div class="kpis">
+    <div class="kpi kpi-azul"><span class="kpi-valor" id="kpiComprometido">—</span>
+      <span class="kpi-nombre">pts comprometidos</span></div>
+    <div class="kpi kpi-verde"><span class="kpi-valor" id="kpiHechos">—</span>
+      <span class="kpi-nombre">pts completados</span></div>
+    <div class="kpi kpi-rojo"><span class="kpi-valor" id="kpiBloqueadas">—</span>
+      <span class="kpi-nombre">bloqueadas ⛔</span></div>
+    <div class="kpi kpi-ambar"><span class="kpi-valor" id="kpiEstancadas">—</span>
+      <span class="kpi-nombre">estancadas &gt;2 días</span></div>
+  </div>
+
+  {# --- los 2 gráficos (pipelines 1 y 2) ----------------------------------- #}
+  <div class="paneles">
+    <div class="panel">
+      <h2>Velocity por sprint <span class="nota">puntos completados y su promedio móvil</span></h2>
+      <div class="grafico"><canvas id="graficoVelocity"></canvas></div>
+      <p id="sinVelocity" class="vacio no-mostrar">Aún no hay sprints cerrados que medir.</p>
+    </div>
+    <div class="panel">
+      <h2>Burndown del sprint <span class="nota">puntos restantes vs ritmo ideal</span></h2>
+      <div class="grafico"><canvas id="graficoBurndown"></canvas></div>
+      <p id="sinBurndown" class="vacio no-mostrar">No hay sprint activo que quemar.</p>
+    </div>
+  </div>
+
+  {# --- carga por integrante (pipeline 4) ---------------------------------- #}
+  <div class="panel">
+    <h2>Carga por integrante <span class="nota">quién tiene qué entre manos ahora</span></h2>
+    <div class="tabla-envoltura">
+    <table class="tabla-carga">
+      <thead><tr>
+        <th>Integrante</th><th>Rol</th><th>En curso (WIP)</th>
+        <th>Pendientes</th><th>Puntos</th><th>Bloqueadas</th>
+      </tr></thead>
+      <tbody id="cuerpoCarga"><tr><td colspan="6" class="vacio">Cargando…</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{# vendorizado (sin CDN): la demo no depende de internet en la sala #}
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script>
+/* Todo sale de los endpoints /metricas/*: los pipelines son la única fuente.
+ * Colores: azul = la serie real (entidad); gris punteado = referencias derivadas
+ * (media móvil, línea ideal) — recesivas a propósito y distinguibles por forma. */
+const PID = "{{ proyecto._id }}";
+const AZUL = "#2f6fed", GRIS = "#6b6355", REJILLA = "#ede5d4";
+
+Chart.defaults.font.family = '"Nunito", "Segoe UI", system-ui, sans-serif';
+Chart.defaults.color = GRIS;
+Chart.defaults.plugins.legend.labels.boxWidth = 14;
+
+async function json(url) {
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  return r.json();
+}
+
+(async () => {
+  const [velocity, burndown, radar, carga] = await Promise.all([
+    json(`/metricas/velocity?proyectoId=${PID}`),
+    json(`/metricas/burndown?proyectoId=${PID}`),   // null si no hay sprint activo
+    json(`/metricas/bloqueadas?proyectoId=${PID}`),
+    json(`/metricas/carga?proyectoId=${PID}`),
+  ]);
+
+  // --- KPIs -----------------------------------------------------------------
+  if (burndown) {
+    const ultimo = burndown.dias.at(-1);
+    const hechos = ultimo ? ultimo.acumulado : 0;
+    document.getElementById("kpiComprometido").textContent = burndown.comprometido;
+    document.getElementById("kpiHechos").textContent =
+      `${hechos} (${Math.round(100 * hechos / burndown.comprometido)} %)`;
+  }
+  document.getElementById("kpiBloqueadas").textContent =
+    (radar || []).filter(t => t.bloqueado.estado).length;
+  document.getElementById("kpiEstancadas").textContent =
+    (radar || []).filter(t => t.estancada).length;
+
+  // --- Velocity: barras (real) + media móvil (referencia) --------------------
+  if (!velocity || !velocity.length) {
+    document.getElementById("graficoVelocity").closest(".grafico").classList.add("no-mostrar");
+    document.getElementById("sinVelocity").classList.remove("no-mostrar");
+  } else
+  new Chart(document.getElementById("graficoVelocity"), {
+    type: "bar",
+    data: {
+      labels: velocity.map(v => v.sprint),
+      datasets: [
+        { label: "Puntos completados", data: velocity.map(v => v.puntos),
+          backgroundColor: AZUL, borderRadius: 4, maxBarThickness: 48 },
+        { type: "line", label: "Media móvil (3 sprints)",
+          data: velocity.map(v => v.mediaMovil),
+          borderColor: GRIS, borderDash: [6, 4], borderWidth: 2,
+          pointBackgroundColor: GRIS, pointRadius: 4, tension: 0 },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, grid: { color: REJILLA }, title: { display: true, text: "puntos" } },
+                x: { grid: { display: false } } },
+    },
+  });
+
+  // --- Burndown: restante por día + línea ideal ------------------------------
+  if (!burndown) {
+    document.getElementById("graficoBurndown").closest(".grafico").classList.add("no-mostrar");
+    document.getElementById("sinBurndown").classList.remove("no-mostrar");
+  } else {
+    const DIA = 86400000;
+    const inicio = new Date(burndown.fechaInicio.slice(0, 10) + "T00:00:00");
+    const dias = ["Lun", "Mar", "Mié", "Jue", "Vie"]
+      .map((d, i) => { const f = new Date(+inicio + i * DIA);
+                       return `${d} ${f.getDate()}/${f.getMonth() + 1}`; });
+
+    // El pipeline trae solo los días CON movimientos; aquí se rellena la serie:
+    // arranca en lo comprometido, cae en cada día con cierres y se corta en hoy.
+    const real = Array(5).fill(null);
+    real[0] = burndown.comprometido;
+    for (const d of burndown.dias) {
+      // clamp a lun-vie: un cierre en fin de semana cuenta en el viernes
+      const i = Math.min(4, Math.max(0, Math.round((new Date(d.dia + "T00:00:00") - inicio) / DIA)));
+      real[i] = d.restante;
+    }
+    const hoy = Math.min(4, Math.max(0, Math.round((new Date().setHours(0,0,0,0) - inicio) / DIA)));
+    for (let i = 1; i <= hoy; i++) if (real[i] === null) real[i] = real[i - 1];
+
+    const ideal = [0, 1, 2, 3, 4].map(i => +(burndown.comprometido * (1 - i / 4)).toFixed(1));
+
+    new Chart(document.getElementById("graficoBurndown"), {
+      type: "line",
+      data: {
+        labels: dias,
+        datasets: [
+          { label: "Restante real", data: real, borderColor: AZUL, borderWidth: 2,
+            pointBackgroundColor: AZUL, pointRadius: 4, tension: 0, spanGaps: false },
+          { label: "Ideal", data: ideal, borderColor: GRIS, borderDash: [6, 4],
+            borderWidth: 2, pointRadius: 0 },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, grid: { color: REJILLA }, title: { display: true, text: "puntos restantes" } },
+                  x: { grid: { display: false } } },
+      },
+    });
+  }
+
+  // --- Carga por integrante ---------------------------------------------------
+  document.getElementById("cuerpoCarga").innerHTML = (carga || []).map(p => `
+    <tr>
+      <td><span class="avatar">${p.nombre[0]}</span> ${p.nombre}</td>
+      <td>${p.rol}${p.rol === "moderador" ? " ★" : ""}</td>
+      <td><strong>${p.wip}</strong></td>
+      <td>${p.tarjetasPendientes}</td>
+      <td>${p.puntosPendientes}</td>
+      <td>${p.bloqueadas ? "⛔ " + p.bloqueadas : "—"}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="vacio">Nadie tiene trabajo pendiente.</td></tr>`;
+})();
+</script>
+{% endblock %}

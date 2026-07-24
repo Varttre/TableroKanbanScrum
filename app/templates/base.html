@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Tablero{% endblock %} · Rumbo</title>
+  <link rel="stylesheet" href="/static/estilos.css">
+</head>
+<body>
+<header class="cabecera">
+  <a class="marca" href="/">🧭 Rumbo</a>
+  <nav class="nav">{% block nav %}{% endblock %}</nav>
+  <div class="cabecera-derecha">
+    {# Selector de usuario (D-08): sin autenticación, el actor se elige aquí y
+       viaja como usuarioId en cada mutación. Su rol (D-17) decide qué partes
+       de la interfaz de administración se muestran. #}
+    <label class="sel-usuario">Actúas como
+      <select id="selUsuario">
+        {% for u in usuarios %}
+        <option value="{{ u._id }}" data-rol="{{ u.rol }}">
+          {{ u.nombre }}{% if u.rol == "moderador" %} ★{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+</header>
+<main>{% block contenido %}{% endblock %}</main>
+
+{# Modal y toast compartidos por todas las páginas #}
+<div id="modal-fondo" class="modal-fondo oculto">
+  <div id="modal" class="modal"></div>
+</div>
+<div id="toast" class="toast oculto"></div>
+
+<script>
+  // --- usuario activo (persistente) y rol -----------------------------------
+  const selUsuario = document.getElementById("selUsuario");
+  const guardado = localStorage.getItem("usuarioId");
+  if (guardado && [...selUsuario.options].some(o => o.value === guardado))
+    selUsuario.value = guardado;
+
+  function aplicarRol() {
+    // La estrella importa: los elementos .solo-moderador solo existen para
+    // moderadores. La misma regla vive en el servidor (403 si se salta la UI).
+    const rol = selUsuario.selectedOptions[0]?.dataset.rol;
+    document.body.classList.toggle("modo-moderador", rol === "moderador");
+  }
+  selUsuario.addEventListener("change", () => {
+    localStorage.setItem("usuarioId", selUsuario.value);
+    aplicarRol();
+  });
+  aplicarRol();
+
+  // --- utilidades compartidas -------------------------------------------------
+  function toast(msg, esError = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "toast" + (esError ? " error" : "");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.add("oculto"), 4000);
+  }
+
+  const modalFondo = document.getElementById("modal-fondo");
+  const modal = document.getElementById("modal");
+  modalFondo.addEventListener("click", e => { if (e.target === modalFondo) cerrarModal(); });
+  function abrirModal(html) { modal.innerHTML = html; modalFondo.classList.remove("oculto"); }
+  function cerrarModal() { modalFondo.classList.add("oculto"); }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g,
+      c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function llamarApi(url, metodo, datos) {
+    const r = await fetch(url, {
+      method: metodo,
+      headers: datos ? { "Content-Type": "application/json" } : undefined,
+      body: datos ? JSON.stringify({ ...datos, usuarioId: selUsuario.value }) : undefined,
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      toast(typeof e.detail === "string" ? e.detail : "La operación falló", true);
+      return null;
+    }
+    return r.json();
+  }
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
