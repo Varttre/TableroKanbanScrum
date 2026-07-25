@@ -38,7 +38,7 @@ def obtener(id: str):
 @router.post("", status_code=201)
 def crear(datos: DailyCrear):
     sprint = o_404(db.sprints.find_one({"_id": oid(datos.sprintId)}), "sprint")
-    exigir_miembro(datos.usuarioId, sprint["proyectoId"])  # la abre el equipo (D-18)
+    exigir_miembro(datos.usuarioId, sprint["proyectoId"])  # la abre el equipo
     dia = datos.fecha.date()
     # una sola daily por (sprint, día): la ceremonia ocurre una vez al día
     for d in db.dailies.find({"sprintId": sprint["_id"]}, {"fecha": 1}):
@@ -49,7 +49,7 @@ def crear(datos: DailyCrear):
     try:
         db.dailies.insert_one(doc)
     except DuplicateKeyError:
-        # el índice único {sprintId, fecha} (C11) atrapa la carrera que el
+        # el índice único {sprintId, fecha} atrapa la carrera que el
         # chequeo de arriba no ve: dos registros simultáneos del mismo momento
         raise HTTPException(409, f"Ya existe la daily del {dia} para este sprint")
     return a_json(doc)

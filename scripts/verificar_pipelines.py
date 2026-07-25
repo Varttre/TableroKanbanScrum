@@ -12,13 +12,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.db import db  # noqa: E402
-from app.queries.arbol import pipeline_arbol  # noqa: E402
-from app.queries.bloqueadas import pipeline_bloqueadas  # noqa: E402
-from app.queries.burndown import pipeline_burndown  # noqa: E402
-from app.queries.carga_wip import pipeline_carga  # noqa: E402
-from app.queries.cycle_time import pipeline_cycle_time  # noqa: E402
-from app.queries.velocity import pipeline_velocity  # noqa: E402
+from app.db import db
+from app.queries.arbol import pipeline_arbol
+from app.queries.bloqueadas import pipeline_bloqueadas
+from app.queries.burndown import pipeline_burndown
+from app.queries.carga_wip import pipeline_carga
+from app.queries.cycle_time import pipeline_cycle_time
+from app.queries.velocity import pipeline_velocity
 
 OK = 0
 

@@ -2,7 +2,7 @@
 
 Los pipelines viven en app/queries/ (uno por archivo, comentados etapa por
 etapa: son material del informe). Este router solo resuelve parámetros,
-ejecuta y serializa — la separación de capas de D-15.
+ejecuta y serializa.
 """
 
 from fastapi import APIRouter, HTTPException

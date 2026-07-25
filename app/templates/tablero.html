@@ -18,12 +18,12 @@
 
 {% block contenido %}
 <section class="tablero-envoltura">
-  {# visible solo cuando el usuario del selector NO es miembro (D-18) #}
+  {# visible solo cuando el usuario del selector NO es miembro #}
   <div class="banner-observador">👁 Estás observando <strong>{{ proyecto.nombre }}</strong>:
     no formas parte del equipo, así que puedes mirar el tablero pero no modificarlo.</div>
 
   {% if breadcrumb %}
-  {# Drill-down: la ruta sale de `ancestros` (materialized path, D-03) #}
+  {# Drill-down: la ruta sale de `ancestros` (materialized path) #}
   <nav class="breadcrumb">
     <a href="/tablero/{{ proyecto._id }}">Tablero</a>
     {% for paso in breadcrumb %}

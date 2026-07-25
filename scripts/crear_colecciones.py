@@ -19,7 +19,7 @@ from app.db import db  # noqa: E402
 
 # --- fragmentos reutilizables -------------------------------------------------
 
-# Escala Fibonacci (D-06). null = sin estimar o tipo "nodo" (los nodos no puntúan).
+# Escala Fibonacci. null = sin estimar o tipo "nodo" (los nodos no puntúan).
 PUNTOS_FIBONACCI = {"enum": [1, 2, 3, 5, 8, 13, 21, None]}
 
 OBJECT_ID = {"bsonType": "objectId"}
@@ -59,7 +59,7 @@ ESQUEMAS = {
                         "clave": TEXTO,
                         "nombre": TEXTO,
                         "orden": {"bsonType": "int"},
-                        # null = sin límite; el contador wip nunca baja de 0 (D-11)
+                        # null = sin límite; el contador wip nunca baja de 0
                         "limiteWip": {"bsonType": ["int", "null"], "minimum": 1},
                         "wip": {"bsonType": "int", "minimum": 0},
                     },
@@ -101,12 +101,12 @@ ESQUEMAS = {
             "descripcion": TEXTO,
             "tipo": {"enum": ["historia", "bug", "tarea", "spike", "nodo"]},
             "proyectoId": OBJECT_ID,
-            "proyectoNombre": TEXTO,          # denormalizado (C1: tablero sin $lookup)
+            "proyectoNombre": TEXTO,          # denormalizado
             "sprintId": OBJECT_ID_O_NULL,     # null = backlog
             "asignadoA": OBJECT_ID_O_NULL,
             "asignadoNombre": {"bsonType": ["string", "null"]},
             "columna": TEXTO,
-            "orden": {"bsonType": ["double", "int"]},  # fraccionario (D-05)
+            "orden": {"bsonType": ["double", "int"]},  # fraccionario
             "puntos": PUNTOS_FIBONACCI,
             "diaPrevisto": FECHA_O_NULL,
             "bloqueado": {
@@ -119,9 +119,9 @@ ESQUEMAS = {
                 },
             },
             "padreId": OBJECT_ID_O_NULL,      # null = raíz
-            "ancestros": {"bsonType": "array", "items": OBJECT_ID},  # mat. path (D-03)
+            "ancestros": {"bsonType": "array", "items": OBJECT_ID},  # mat. path
             "profundidad": {"bsonType": "int", "minimum": 0},
-            "liderId": OBJECT_ID_O_NULL,      # solo nodos (D-07)
+            "liderId": OBJECT_ID_O_NULL,      # solo nodos
             "etiquetas": {"bsonType": "array", "items": TEXTO},
             "checklist": {
                 "bsonType": "array",
@@ -145,7 +145,7 @@ ESQUEMAS = {
             "activo": BOOLEANO,
             "createdAt": FECHA,
             "updatedAt": FECHA,
-            "doneAt": FECHA_O_NULL,           # primera entrada a done (velocity, C15)
+            "doneAt": FECHA_O_NULL,           # primera entrada a done
         },
     },
     "eventos": {
@@ -153,7 +153,7 @@ ESQUEMAS = {
         "required": ["tarjetaId", "tipo", "de", "a", "usuarioId", "timestamp", "meta"],
         "properties": {
             "tarjetaId": OBJECT_ID,
-            # Catálogo congelado (D-13). Añadir un tipo nuevo exige pasar por aquí.
+            # Catálogo congelado. Añadir un tipo nuevo exige pasar por aquí.
             "tipo": {"enum": [
                 "creacion", "movimiento", "reasignacion", "cambio_sprint",
                 "bloqueo", "desbloqueo", "edicion", "archivado",
@@ -162,7 +162,7 @@ ESQUEMAS = {
             "a": {"bsonType": ["string", "objectId", "null"]},
             "usuarioId": OBJECT_ID,
             "timestamp": FECHA,
-            "meta": {"bsonType": "object"},   # payload variable por tipo (D-13)
+            "meta": {"bsonType": "object"},   # payload variable por tipo
         },
     },
     "dailies": {

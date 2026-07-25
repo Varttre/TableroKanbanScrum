@@ -1,10 +1,10 @@
 """Pipeline 1 — Velocity por sprint, con media móvil de 3 sprints.
 
 Pregunta de negocio: ¿cuántos puntos completa el equipo por sprint y cuál es su
-tendencia? Es LA herramienta de capacidad del moderador (D-06): la conversión
+tendencia? Es LA herramienta de capacidad del moderador: la conversión
 puntos→tiempo no se fija a priori, se mide empíricamente aquí.
 
-Colecciones: tarjetas + $lookup a sprints (C15). Índice de soporte: {sprintId, columna}.
+Colecciones: tarjetas + $lookup a sprints. Índice de soporte: {sprintId, columna}.
 Valores esperados con la semilla (Qhatu): S1=20, S2=24, S3=23 → medias 20, 22, 22.3.
 """
 

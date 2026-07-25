@@ -7,9 +7,9 @@ Diseño de la historia (startup "Rumbo", Lima):
   20 / 24 / 23 en los cerrados, sprint 4 activo a mitad de semana.
 - Proyecto secundario "Web Andina Travel": 1 sprint activo, poca historia. Existe
   para demostrar multi-proyecto (Diego trabaja en ambos → consulta C9 de carga).
-- Árbol (D-06): la historia "Módulo de pagos" nació con 21 puntos (> 13) y se
+- Árbol: la historia "Módulo de pagos" nació con 21 puntos (> 13) y se
   partió: se convirtió en nodo y el trabajo real vive en hijos y nietos (3 niveles).
-- Una tarjeta bloqueada y una estancada en Doing (alimentan el pipeline 6).
+- Una tarjeta bloqueada y una estancada en Doing.
 
 Todo timestamp se guarda en UTC. Lima es UTC-5 fijo (sin horario de verano), así
 que las horas laborales 9:00-18:00 Lima son 14:00-23:00 UTC del mismo día.
@@ -24,7 +24,7 @@ from bson import ObjectId
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.db import db  # noqa: E402
+from app.db import db 
 
 random.seed(42)  # semilla determinista: re-sembrar produce exactamente los mismos datos
 
@@ -76,7 +76,7 @@ def miembro(clave):
 
 
 # ---------------------------------------------------------------------------
-# 2. PROYECTOS — columnas embebidas con contador wip (D-11); se recuenta al final
+# 2. PROYECTOS — columnas embebidas con contador wip; se recuenta al final
 # ---------------------------------------------------------------------------
 
 def columnas_estandar():
@@ -117,7 +117,7 @@ def sprint(proyecto, nombre, objetivo, lunes, estado):
     }
 
 
-from datetime import date  # noqa: E402
+from datetime import date 
 
 S1 = sprint(PROY_QHATU, "Sprint 1", "Registro de usuarios y catálogo navegable", date(2026, 6, 29), "cerrado")
 S2 = sprint(PROY_QHATU, "Sprint 2", "Carrito y checkout contra entrega",          date(2026, 7, 6),  "cerrado")
@@ -287,7 +287,7 @@ mover(optimizar, "doing", "done", "diego", jitter(lima(fh.year, fh.month, fh.day
 # velocity S3 = 2 (optimizar) + 8+5+3+3+2 = 23
 ciclo(s3_cards[0], S3, "diego", 0, 4)
 # el seguimiento estuvo bloqueado un día (caída de la API de mapas) y se desbloqueó:
-# así la semilla demuestra el ciclo completo bloqueo→desbloqueo del catálogo (D-13)
+# así la semilla demuestra el ciclo completo bloqueo→desbloqueo del catálogo
 mar3 = dia_sprint(S3, 1)
 mie3 = dia_sprint(S3, 2)
 evento(s3_cards[0], "bloqueo", None, None, "diego",
@@ -301,7 +301,7 @@ ciclo(s3_cards[3], S3, "camila", 0, 2)
 ciclo(s3_cards[4], S3, "valeria", 3, 4)
 
 # ---------------------------------------------------------------------------
-# Sprint 4 (ACTIVO) — el árbol de pagos: nodo → nodo → hojas (3 niveles, D-06)
+# Sprint 4 (ACTIVO) — el árbol de pagos: nodo → nodo → hojas (3 niveles)
 # ---------------------------------------------------------------------------
 
 lun4 = dia_sprint(S4, 0)
@@ -312,7 +312,7 @@ epica = fabrica(PROY_QHATU, "Módulo de pagos en línea", "historia", 21, "valer
                 descripcion="Cobro con tarjeta vía pasarela, confirmación y manejo de errores.")
 crear(epica, "lucia", lima(lun4.year, lun4.month, lun4.day, 9, 5), "todo")
 
-# ...supera el límite de 13 puntos (D-06) → se parte: se convierte en nodo con líder
+# ...supera el límite de 13 puntos → se parte: se convierte en nodo con líder
 evento(epica, "edicion", None, None, "lucia",
        lima(lun4.year, lun4.month, lun4.day, 9, 35), {"campos": ["tipo", "puntos", "liderId"]})
 epica.update({"tipo": "nodo", "puntos": None, "liderId": uid("valeria")})
@@ -353,7 +353,7 @@ evento(reintento, "reasignacion", uid("camila"), uid("diego"), "lucia",
        lima(mar4.year, mar4.month, mar4.day, 9, 20))
 reintento.update({"asignadoA": uid("diego"), "asignadoNombre": unombre("diego")})
 
-# bloqueo real: sin credenciales del cliente (alimenta el pipeline 6)
+# bloqueo real: sin credenciales del cliente
 ts_bloqueo = lima(mar4.year, mar4.month, mar4.day, 15, 10)
 evento(webhook, "bloqueo", None, None, "alejandro", ts_bloqueo,
        {"motivo": "Esperando credenciales de producción de la pasarela (cliente)"})
@@ -391,7 +391,7 @@ for i, (titulo, tipo, pts) in enumerate(BACKLOG_QHATU):
     t = fabrica(PROY_QHATU, titulo, tipo, pts, None, None, "backlog")
     crear(t, "lucia", lima(2026, 7, 7, 11, 0) + timedelta(minutes=10 * i), "backlog")
 
-# una tarjeta archivada (borrado lógico D-09, evento "archivado")
+# una tarjeta archivada (borrado lógico, evento "archivado")
 descartada = fabrica(PROY_QHATU, "Encuesta de satisfacción en la app", "historia", 3,
                      None, None, "backlog")
 crear(descartada, "lucia", lima(2026, 7, 7, 11, 50), "backlog")
@@ -465,7 +465,7 @@ generar_dailies(S4, DEVS_QHATU, range(4), bloqueos={
 generar_dailies(SA1, ["jorge", "fiorella", "diego"], range(4))
 
 # ---------------------------------------------------------------------------
-# 6. ORDEN FRACCIONARIO (D-05) — único por (proyecto, asignado, columna)
+# 6. ORDEN FRACCIONARIO — único por (proyecto, asignado, columna)
 # ---------------------------------------------------------------------------
 
 grupos: dict = {}
@@ -492,7 +492,7 @@ def main():
     db.eventos.insert_many(EVENTOS)
     db.dailies.insert_many(DAILIES)
 
-    # Recuento del contador wip (D-11): tarjetas de TRABAJO (los nodos no cuentan,
+    # Recuento del contador wip: tarjetas de TRABAJO (los nodos no cuentan,
     # son agrupadores) del sprint activo, por columna. Es la única escritura del
     # contador fuera del flujo de movimiento; deja el derivado consistente.
     for proyecto, sp_activo in ((PROY_QHATU, S4), (PROY_ANDINA, SA1)):

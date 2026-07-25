@@ -1,14 +1,14 @@
 """Pipeline 5 — Subárbol de un nodo con progreso agregado ($graphLookup).
 
-Pregunta de negocio: ¿cómo va la épica? Un nodo padre no puntúa (D-06): su
+Pregunta de negocio: ¿cómo va la épica? Un nodo padre no puntúa: su
 avance ES el avance agregado de sus descendientes, a cualquier profundidad.
 
-Es el complemento del materialized path (D-03): `ancestros` responde "dame el
+Es el complemento del materialized path: `ancestros` responde "dame el
 subárbol" plano con un find indexado; $graphLookup RECORRE el grafo desde la
 raíz y anota a qué nivel está cada descendiente (depthField), que es lo que la
 UI necesita para dibujar el árbol.
 
-Colección: tarjetas (C17). Índice de soporte: {padreId} — el campo conector.
+Colección: tarjetas. Índice de soporte: {padreId} — el campo conector.
 Esperado con la semilla (épica "Módulo de pagos"): 6 descendientes, 20 puntos
 totales, 7 hechos → 35 %.
 """

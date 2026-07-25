@@ -1,5 +1,5 @@
-"""CRUD de usuarios. Delete = borrado lógico (D-09). Administración: solo
-moderadores (D-17) — la guarda vive en el servidor, no solo en la UI."""
+"""CRUD de usuarios. Delete = borrado lógico. Administración: solo
+moderadores — la guarda vive en el servidor, no solo en la UI."""
 
 from fastapi import APIRouter
 
@@ -51,4 +51,4 @@ def desactivar(id: str, usuarioId: str):
     exigir_moderador(usuarioId)
     o_404(db.usuarios.find_one_and_update(
         {"_id": oid(id), "activo": True}, {"$set": {"activo": False}}), "usuario")
-    return {"desactivado": id, "nota": "borrado lógico (D-09); el historial se conserva"}
+    return {"desactivado": id, "nota": "borrado lógico; el historial se conserva"}

@@ -5,7 +5,7 @@ Pregunta de negocio: ¿qué está frenado y desde cuándo? Dos casos distintos:
   - ESTANCADA: nadie declaró nada, pero lleva en Doing más de N días sin
     actividad — el problema silencioso que la daily debe destapar.
 
-Colección: tarjetas (C12). Índices de soporte: {proyectoId, columna, updatedAt}
+Colección: tarjetas. Índices de soporte: {proyectoId, columna, updatedAt}
 y el parcial sobre {bloqueado.estado}.
 Esperado con la semilla (Qhatu, umbral 2 días): 1 bloqueada (webhook, sin
 credenciales del cliente) y 1 estancada (migrar imágenes, en Doing desde el lunes).
@@ -17,7 +17,7 @@ def pipeline_bloqueadas(proyecto_id, umbral_dias=2):
         # Etapa 1 — $match: tarjetas vivas del proyecto que están EN el flujo.
         # Done ya terminó y el backlog aún no empieza: ninguna puede estar
         # frenada. Los nodos padre se excluyen: son agrupadores — su "actividad"
-        # es la de sus hijos, igual que no puntúan (D-06) ni cuentan WIP (D-11).
+        # es la de sus hijos, igual que no puntúan ni cuentan WIP.
         {"$match": {
             "proyectoId": proyecto_id,
             "activo": True,
@@ -26,7 +26,7 @@ def pipeline_bloqueadas(proyecto_id, umbral_dias=2):
         }},
 
         # Etapa 2 — $dateDiff: días calendario sin actividad. updatedAt se
-        # actualiza con CADA evento de la tarjeta (D-04), así que es un proxy
+        # actualiza con CADA evento de la tarjeta, así que es un proxy
         # honesto de "última vez que alguien la tocó". $$NOW es la hora del
         # servidor; el timezone evita que un límite de día en UTC (19:00 en
         # Lima) parta mal el conteo.

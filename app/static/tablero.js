@@ -1,15 +1,15 @@
 /* Tablero 2D: drag & drop + detalle + administración desde la UI.
  *
  * El cliente NO decide nada de negocio: manda la intención a la API y el
- * backend aplica la guarda WIP (D-11), el orden fraccionario (D-05), el cambio
- * de sprint (D-16), los permisos (D-07/D-17) y los eventos (D-04). Si el
- * backend rechaza (409 WIP, 403 permisos), la UI revierte y muestra el motivo.
+ * backend aplica la guarda WIP, el orden fraccionario, el cambio de sprint,
+ * los permisos y los eventos. Si el backend rechaza (409 WIP, 403 permisos),
+ * la UI revierte y muestra el motivo.
  * Variables que inyecta la plantilla: PROYECTO_ID, SPRINT_ID, SPRINT_NOMBRE,
  * MIEMBROS. Helpers globales de base.html: abrirModal, cerrarModal, toast,
  * esc, llamarApi, selUsuario.
  */
 
-// --- membresía (D-18): quien no es del equipo solo observa ---------------------
+// --- membresía: quien no es del equipo solo observa ---------------------
 
 function esMiembro() {
   return MIEMBROS.some(m => m.id === selUsuario.value);

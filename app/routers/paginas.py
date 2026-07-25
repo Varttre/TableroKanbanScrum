@@ -1,9 +1,9 @@
 """Páginas HTML (Jinja2, render en el servidor).
 
-El tablero se arma con las 2 consultas de C1 — proyecto + tarjetas — sin ningún
+El tablero se arma con las 2 consultas — proyecto + tarjetas — sin ningún
 $lookup: por eso existen las denormalizaciones (proyectoNombre, asignadoNombre)
 y las columnas embebidas. El JavaScript del cliente solo maneja el drag & drop;
-toda la lógica de negocio vive en servicios.mover_tarjeta (D-15).
+toda la lógica de negocio vive en servicios.mover_tarjeta.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -60,7 +60,7 @@ DIA_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "
 
 
 def _describir_evento(e, usuarios, sprints):
-    """Convierte un evento del catálogo (D-13) en una frase humana. Aquí es
+    """Convierte un evento del catálogo en una frase humana. Aquí es
     donde el motivo del bloqueo, el origen→destino y compañía se hacen visibles."""
     col = lambda c: COLUMNA_NOMBRE.get(c, c or "—")
     quien = lambda uid: usuarios.get(uid, "—") if uid else "sin responsable"
@@ -92,15 +92,15 @@ def _describir_evento(e, usuarios, sprints):
 def historial(request: Request, proyectoId: str, usuarioId: str,
               sprintId: str | None = None, actorId: str | None = None,
               tarjetaId: str | None = None):
-    """Auditoría del tablero, SOLO LECTURA y solo moderadores (D-17).
+    """Auditoría del tablero, SOLO LECTURA y solo moderadores.
 
-    Es la colección `eventos` (append-only, D-04) proyectada para humanos:
+    Es la colección `eventos` (append-only) proyectada para humanos:
     agrupada por sprint (rango de fechas) y día de Lima, con filtros
     combinables por sprint, persona (quién hizo la acción) y tarjeta.
     """
     servicios.exigir_moderador(usuarioId)
     pid = oid(proyectoId)
-    servicios.exigir_miembro(usuarioId, pid)  # D-18: auditoría solo del propio equipo
+    servicios.exigir_miembro(usuarioId, pid)  # auditoría solo del propio equipo
     proyecto = o_404(db.proyectos.find_one({"_id": pid, "activo": True}), "proyecto")
 
     sprints = list(db.sprints.find({"proyectoId": pid}).sort("fechaInicio", -1))
@@ -166,7 +166,7 @@ def historial(request: Request, proyectoId: str, usuarioId: str,
 def daily(request: Request, proyectoId: str):
     """La ceremonia diaria: registrar qué hice / qué haré / qué me bloquea.
 
-    Un documento por (sprint, día) — C11, índice único. La página muestra la
+    Un documento por (sprint, día), índice único. La página muestra la
     daily de HOY (si existe) y el historial reciente del sprint activo.
     """
     pid = oid(proyectoId)
@@ -176,7 +176,7 @@ def daily(request: Request, proyectoId: str):
     hoy_doc, historial = None, []
     if sprint:
         # "hoy" en fecha de Lima (UTC-5): el mismo criterio de agrupación que
-        # usan los pipelines (§6 de CLAUDE.md)
+        # usan los pipelines de métricas y el historial de auditoría
         hoy_lima = (datetime.now(timezone.utc) - timedelta(hours=5)).date()
         dailies = list(db.dailies.find({"sprintId": sprint["_id"]}).sort("fecha", -1))
         for d in dailies:
@@ -201,11 +201,11 @@ def tablero(request: Request, proyectoId: str, nodo: str | None = None):
     proyecto = o_404(db.proyectos.find_one({"_id": pid, "activo": True}), "proyecto")
     sprint = db.sprints.find_one({"proyectoId": pid, "estado": "activo"})
 
-    # --- consulta de tarjetas (la 2.ª de C1) ---------------------------------
+    # --- consulta de tarjetas -------------------------------------------------
     breadcrumb, nodo_doc = [], None
     if nodo:
-        # Drill-down (C6): los hijos directos del nodo. El breadcrumb sale del
-        # materialized path (D-03): `ancestros` YA ES la ruta raíz→padre.
+        # Drill-down: los hijos directos del nodo. El breadcrumb sale del
+        # materialized path: `ancestros` YA ES la ruta raíz→padre.
         nodo_doc = o_404(db.tarjetas.find_one({"_id": oid(nodo), "activo": True}), "nodo")
         cadena = nodo_doc["ancestros"] + [nodo_doc["_id"]]
         titulos = {t["_id"]: t["titulo"]
@@ -213,7 +213,7 @@ def tablero(request: Request, proyectoId: str, nodo: str | None = None):
         breadcrumb = [{"id": str(i), "titulo": titulos.get(i, "?")} for i in cadena]
         filtro = {"padreId": nodo_doc["_id"], "activo": True}
     else:
-        # Vista raíz: tarjetas del sprint activo + backlog del proyecto (D-16:
+        # Vista raíz: tarjetas del sprint activo + backlog del proyecto:
         # la columna Backlog muestra lo que aún no entra al sprint).
         pertenece = [{"sprintId": None}]
         if sprint:
@@ -222,7 +222,7 @@ def tablero(request: Request, proyectoId: str, nodo: str | None = None):
     tarjetas = list(db.tarjetas.find(filtro).sort("orden"))
 
     # --- progreso de los nodos visibles (badge y drill-down) -----------------
-    # Un find por `ancestros` (multikey, D-03) trae TODOS los descendientes de
+    # Un find por `ancestros` (multikey) trae TODOS los descendientes de
     # todos los nodos visibles de una sola vez; el reparto se hace en memoria.
     ids_nodos = {t["_id"] for t in tarjetas if t["tipo"] == "nodo"}
     if nodo_doc is not None:

@@ -1,5 +1,5 @@
 """CRUD de sprints. Regla: un solo sprint activo por proyecto.
-Administración: solo moderadores (D-17)."""
+Administración: solo moderadores."""
 
 from fastapi import APIRouter
 
@@ -31,7 +31,7 @@ def crear(datos: SprintCrear):
     exigir_moderador(datos.usuarioId)
     proyecto = o_404(db.proyectos.find_one(
         {"_id": oid(datos.proyectoId), "activo": True}), "proyecto")
-    exigir_miembro(datos.usuarioId, proyecto["_id"])  # D-18
+    exigir_miembro(datos.usuarioId, proyecto["_id"])
     doc = (datos.model_dump(exclude={"usuarioId"})
            | {"proyectoId": proyecto["_id"], "activo": True})
     if doc["estado"] == "activo":
@@ -52,7 +52,7 @@ def actualizar(id: str, datos: SprintActualizar):
     exigir_moderador(datos.usuarioId)
     sid = oid(id)
     sprint = o_404(db.sprints.find_one({"_id": sid}), "sprint")
-    exigir_miembro(datos.usuarioId, sprint["proyectoId"])  # D-18
+    exigir_miembro(datos.usuarioId, sprint["proyectoId"])
     cambios = datos.model_dump(exclude_unset=True, exclude={"usuarioId"})
     if cambios.get("estado") == "activo":
         _desactivar_otros(sprint["proyectoId"])
@@ -68,7 +68,7 @@ def actualizar(id: str, datos: SprintActualizar):
 def desactivar(id: str, usuarioId: str):
     exigir_moderador(usuarioId)
     s0 = o_404(db.sprints.find_one({"_id": oid(id)}), "sprint")
-    exigir_miembro(usuarioId, s0["proyectoId"])  # D-18
+    exigir_miembro(usuarioId, s0["proyectoId"])
     s = o_404(db.sprints.find_one_and_update(
         {"_id": oid(id), "activo": {"$ne": False}}, {"$set": {"activo": False}}), "sprint")
     reconciliar_wip(s["proyectoId"])

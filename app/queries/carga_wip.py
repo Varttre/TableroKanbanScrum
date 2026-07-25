@@ -1,7 +1,7 @@
 """Pipeline 4 — Carga y WIP por integrante.
 
 Pregunta de negocio: ¿quién está sobrecargado AHORA? Es la consulta que cruza
-proyectos (C9): una persona puede estar tranquila en un proyecto y ahogada
+proyectos: una persona puede estar tranquila en un proyecto y ahogada
 sumando los dos. Por eso el filtro por proyecto es OPCIONAL: sin él se ve la
 carga real de cada persona en toda la organización.
 
@@ -11,7 +11,7 @@ Colecciones: tarjetas + $lookup a usuarios. Índice de soporte: {asignadoA, colu
 
 def pipeline_carga(proyecto_id=None):
     # Filtro base: trabajo VIVO y PENDIENTE. Se excluyen done (ya no es carga),
-    # backlog (no está comprometido), los nodos padre (no puntúan, D-06) y lo
+    # backlog (no está comprometido), los nodos padre (no puntúan) y lo
     # no asignado (no carga a nadie).
     filtro = {
         "activo": True,
@@ -27,7 +27,7 @@ def pipeline_carga(proyecto_id=None):
         {"$match": filtro},
 
         # Etapa 2 — $group por persona, con acumuladores condicionales:
-        #   - wip: cuántas tarjetas tiene EN CURSO (Doing) — lo que limita D-11
+        #   - wip: cuántas tarjetas tiene EN CURSO (Doing)
         #   - bloqueadas: cuántas de sus tarjetas están frenadas
         #   - proyectos: $addToSet junta los nombres SIN repetir — aquí se ve
         #     quién está repartido entre varios proyectos (posible con el

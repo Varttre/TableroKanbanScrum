@@ -3,10 +3,10 @@
 Pregunta de negocio: ¿el sprint va camino de cumplirse o nos estamos quedando?
 
 Se calcula SOLO con `eventos` — sin $lookup — porque los eventos de movimiento
-denormalizan `puntos` y `sprintId` (D-13). Eso además da la semántica correcta:
+denormalizan `puntos` y `sprintId`. Eso además da la semántica correcta:
 si una tarjeta se reestima mañana, la curva histórica no se reescribe.
 
-Colección: eventos (C13). Índice de soporte: {meta.sprintId, tipo, timestamp}.
+Colección: eventos. Índice de soporte: {meta.sprintId, tipo, timestamp}.
 Esperado con la semilla (S4, comprometido=26): lun 0, mar 4, mié 6 quemados
 → acumulado 0/4/10 → restante 26/22/16.
 """
@@ -24,7 +24,7 @@ def pipeline_burndown(sprint_id, comprometido):
         }},
 
         # Etapa 2 — $addFields: el signo del movimiento. Los puntos vienen del
-        # propio evento (denormalización D-13), capturados en el momento del
+        # propio evento (denormalización), capturados en el momento del
         # movimiento — no del estado actual de la tarjeta.
         {"$addFields": {
             "delta": {"$cond": [{"$eq": ["$a", "done"]},

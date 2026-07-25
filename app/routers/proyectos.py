@@ -1,5 +1,5 @@
 """CRUD de proyectos. Las columnas (con límite y contador WIP) viven embebidas.
-Administración: solo moderadores (D-17)."""
+Administración: solo moderadores."""
 
 from fastapi import APIRouter, HTTPException
 
@@ -43,7 +43,7 @@ def crear(datos: ProyectoCrear):
     creador = exigir_moderador(datos.usuarioId)
     miembros = resolver_miembros(datos.miembros)
     # el creador entra al equipo automáticamente: sin membresía no podría ni
-    # administrar el proyecto que acaba de crear (D-18)
+    # administrar el proyecto que acaba de crear
     if all(m["usuarioId"] != creador["_id"] for m in miembros):
         miembros.append({"usuarioId": creador["_id"], "nombre": creador["nombre"]})
     doc = {
@@ -59,7 +59,7 @@ def crear(datos: ProyectoCrear):
 def actualizar(id: str, datos: ProyectoActualizar):
     exigir_moderador(datos.usuarioId)
     pid = oid(id)
-    exigir_miembro(datos.usuarioId, pid)  # administra quien está en el equipo (D-18)
+    exigir_miembro(datos.usuarioId, pid)  # administra quien está en el equipo
     proyecto = o_404(db.proyectos.find_one({"_id": pid, "activo": True}), "proyecto")
     cambios = {}
     enviados = datos.model_dump(exclude_unset=True)
@@ -94,4 +94,4 @@ def desactivar(id: str, usuarioId: str):
     exigir_miembro(usuarioId, oid(id))
     o_404(db.proyectos.find_one_and_update(
         {"_id": oid(id), "activo": True}, {"$set": {"activo": False}}), "proyecto")
-    return {"desactivado": id, "nota": "borrado lógico (D-09)"}
+    return {"desactivado": id, "nota": "borrado lógico"}

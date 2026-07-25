@@ -4,8 +4,8 @@ La segunda línea es el $jsonSchema de cada colección (scripts/crear_coleccione
 protege la BD de escrituras hechas por fuera de la app.
 
 Los ids viajan como str en el JSON y se convierten a ObjectId en los routers.
-Como no hay autenticación (D-08), cada mutación de tarjeta recibe `usuarioId`:
-el usuario elegido en el selector de cabecera, que firma el evento (D-04).
+Como no hay autenticación, cada mutación de tarjeta recibe `usuarioId`:
+el usuario elegido en el selector de cabecera, que firma el evento.
 """
 
 from datetime import datetime
@@ -26,14 +26,14 @@ class UsuarioCrear(BaseModel):
     nombre: str = Field(min_length=1)
     email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     rol: Rol
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 class UsuarioActualizar(BaseModel):
     nombre: Optional[str] = None
     email: Optional[str] = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     rol: Optional[Rol] = None
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 # --- proyectos --------------------------------------------------------------
@@ -42,7 +42,7 @@ class ProyectoCrear(BaseModel):
     nombre: str = Field(min_length=1)
     cliente: str = Field(min_length=1)
     miembros: list[str] = []          # ids de usuarios; el nombre se denormaliza al crear
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 class ProyectoActualizar(BaseModel):
@@ -52,7 +52,7 @@ class ProyectoActualizar(BaseModel):
     miembros: Optional[list[str]] = None
     # {"doing": 4} cambia el límite WIP de una columna; None = sin límite
     limitesWip: Optional[dict[str, Optional[int]]] = None
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 # --- sprints ----------------------------------------------------------------
@@ -64,7 +64,7 @@ class SprintCrear(BaseModel):
     fechaInicio: datetime
     fechaFin: datetime
     estado: EstadoSprint = "planificacion"
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 class SprintActualizar(BaseModel):
@@ -73,7 +73,7 @@ class SprintActualizar(BaseModel):
     fechaInicio: Optional[datetime] = None
     fechaFin: Optional[datetime] = None
     estado: Optional[EstadoSprint] = None
-    usuarioId: str                    # actor: debe ser moderador (D-17)
+    usuarioId: str                    # actor: debe ser moderador
 
 
 # --- tarjetas ---------------------------------------------------------------
@@ -92,7 +92,7 @@ class TarjetaCrear(BaseModel):
     asignadoA: Optional[str] = None
     puntos: Optional[Puntos] = None
     padreId: Optional[str] = None     # el servicio calcula ancestros y profundidad
-    liderId: Optional[str] = None     # solo tipo "nodo" (D-07)
+    liderId: Optional[str] = None     # solo tipo "nodo"
     etiquetas: list[str] = []
     checklist: list[ChecklistItem] = []
     usuarioId: str                    # actor: firma el evento de creación
@@ -115,7 +115,7 @@ class TarjetaActualizar(BaseModel):
 class MoverTarjeta(BaseModel):
     """Movimiento en el tablero 2D: columna destino y, opcionalmente, otra fila.
 
-    El orden se calcula con los vecinos (D-05): el frontend manda entre qué dos
+    El orden se calcula con los vecinos: el frontend manda entre qué dos
     tarjetas cayó la que se arrastra; el backend pone el punto medio.
     """
     columna: str
@@ -152,7 +152,7 @@ class DailyCrear(BaseModel):
     sprintId: str
     fecha: datetime
     participaciones: list[Participacion] = []
-    usuarioId: str                    # quien abre la ceremonia: miembro (D-18)
+    usuarioId: str                    # quien abre la ceremonia: miembro
 
 
 class ParticipacionUpsert(BaseModel):

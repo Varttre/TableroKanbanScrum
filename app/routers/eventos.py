@@ -1,4 +1,4 @@
-"""Consulta del historial. SOLO LECTURA: la colección es append-only (D-04).
+"""Consulta del historial. SOLO LECTURA: la colección es append-only.
 
 Los eventos los escribe el sistema en cada mutación de tarjeta (app/servicios.py).
 No hay POST, PATCH ni DELETE: exponerlos destruiría la garantía de la que dependen
@@ -27,5 +27,5 @@ def listar(tarjetaId: str | None = None, tipo: str | None = None, limite: int = 
 
 @router.get("/tarjeta/{tarjetaId}")
 def historial(tarjetaId: str):
-    """Historial cronológico completo de una tarjeta (C14): su auditoría."""
+    """Historial cronológico completo de una tarjeta: su auditoría."""
     return a_json(list(db.eventos.find({"tarjetaId": oid(tarjetaId)}).sort("timestamp")))

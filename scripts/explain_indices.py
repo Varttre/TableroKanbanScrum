@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.db import db  # noqa: E402
+from app.db import db 
 
 
 def explicar(nombre, coleccion, filtro):
@@ -40,14 +40,14 @@ epica = db.tarjetas.find_one({"titulo": "Módulo de pagos en línea"})
 print(f"--- explain sobre {db.tarjetas.count_documents({})} tarjetas, "
       f"{db.eventos.count_documents({})} eventos ---\n")
 
-# C1 — el render del tablero: la consulta más frecuente del sistema
+# el render del tablero: la consulta más frecuente del sistema
 explicar("C1 · tablero (proyecto + sprint activo, raíces)", "tarjetas",
          {"proyectoId": qhatu["_id"], "sprintId": s4["_id"], "padreId": None})
 
-# C7 — subárbol por materialized path (D-03)
+# subárbol por materialized path
 explicar("C7 · subárbol de la épica (ancestros multikey)", "tarjetas",
          {"ancestros": epica["_id"]})
 
-# C13 — los eventos que alimentan el burndown (pipeline 2)
+# los eventos que alimentan el burndown
 explicar("C13 · eventos de movimiento del sprint activo", "eventos",
          {"meta.sprintId": s4["_id"], "tipo": "movimiento"})

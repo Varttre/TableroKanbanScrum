@@ -95,7 +95,7 @@ selUsuario.addEventListener("change", aplicarMembresiaDaily);
 aplicarMembresiaDaily();
 
 /* Registrar = (crear la daily de hoy si no existe) + upsert de mi participación.
- * El backend garantiza una daily por (sprint, día) con índice único (C11). */
+ * El backend garantiza una daily por (sprint, día) con índice único. */
 async function registrar(evento) {
   evento.preventDefault();
   const f = evento.target;

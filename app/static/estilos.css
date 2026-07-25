@@ -270,7 +270,7 @@ body {
 }
 .btn-mini:hover { background: var(--superficie); }
 
-/* --- responsive (D-18/bloque 9): sin scroll interno --------------------------- */
+/* --- responsive ----------------------------------------------------------- */
 
 /* Tablet y ventanas angostas: la columna de nombres se reduce al avatar */
 @media (max-width: 1100px) {
@@ -299,7 +299,7 @@ body {
   .leyenda { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 
-/* --- administración por rol (D-17) ------------------------------------------- */
+/* --- administración por rol ----------------------------------------------- */
 
 /* La estrella importa: lo administrativo solo existe para moderadores.
    La misma regla vive en el servidor (403): esto es UX, no seguridad. */
@@ -329,7 +329,7 @@ body.modo-moderador .wip-pill:hover { border-color: var(--primario); color: var(
   font-weight: 800;
 }
 
-/* --- modo observador (D-18): quien no es del equipo mira, no toca ------------- */
+/* --- modo observador: quien no es del equipo mira, no toca ---------------- */
 /* va DESPUÉS de las reglas de moderador: ser observador manda sobre el rol */
 body.observador .solo-miembro { display: none !important; }
 body.observador .tarjeta { cursor: default; }

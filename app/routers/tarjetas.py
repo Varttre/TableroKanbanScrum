@@ -1,6 +1,6 @@
 """CRUD de tarjetas + operaciones de negocio (mover, bloquear, comentar).
 
-Toda mutación escribe su evento (D-04) — eso ocurre en app/servicios.py, que es
+Toda mutación escribe su evento — eso ocurre en app/servicios.py, que es
 la única puerta de entrada a los cambios de estado de una tarjeta.
 """
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/tarjetas", tags=["tarjetas"])
 def listar(proyectoId: str | None = None, sprintId: str | None = None,
            asignadoA: str | None = None, columna: str | None = None,
            soloRaiz: bool = False, incluirInactivas: bool = False):
-    """Listado con los filtros de la matriz de acceso (C1, C5, C9).
+    """Listado con los filtros de la matriz de acceso.
 
     `sprintId="backlog"` filtra las tarjetas sin sprint (el backlog del proyecto).
     """
@@ -49,13 +49,13 @@ def obtener(id: str):
 
 @router.get("/{id}/hijos")
 def hijos(id: str):
-    """Hijos directos (C6): un nivel del drill-down."""
+    """Hijos directos: un nivel del drill-down."""
     return a_json(list(db.tarjetas.find({"padreId": oid(id), "activo": True}).sort("orden")))
 
 
 @router.get("/{id}/subarbol")
 def subarbol(id: str):
-    """Subárbol completo a cualquier profundidad (C7) — la consulta estrella del
+    """Subárbol completo a cualquier profundidad — la consulta estrella del
     materialized path (D-03): un find indexado, sin recursión ni $graphLookup."""
     return a_json(list(db.tarjetas.find({"ancestros": oid(id), "activo": True})
                        .sort([("profundidad", ASCENDING), ("orden", ASCENDING)])))
@@ -142,7 +142,7 @@ def comentar(id: str, datos: ComentarioCrear):
 @router.delete("/{id}/comentarios/{comentarioId}")
 def eliminar_comentario(id: str, comentarioId: str, usuarioId: str):
     """Borrado FÍSICO del comentario ($pull): el subdocumento desaparece de la BD.
-    Es la excepción deliberada al borrado lógico (D-09): un comentario no alimenta
+    Es la excepción deliberada al borrado lógico: un comentario no alimenta
     ninguna métrica, así que eliminarlo no rompe el historial."""
     t = o_404(db.tarjetas.find_one({"_id": oid(id)}), "tarjeta")
     servicios.exigir_miembro(usuarioId, t["proyectoId"])
